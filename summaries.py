@@ -32,7 +32,7 @@ def log_samples(samples, scores, iteration, seq_length, prefix):
 def log_run_settings():
     with open(os.path.join(LOGS_DIR, 'run_settings.txt'), 'w') as f:
         for key in list(tf.flags.FLAGS.__flags.keys()):
-            entry = "%s: %s" % (key, tf.flags.FLAGS.__flags[key])
+            entry = "%s: %s" % (key, tf.flags.FLAGS.__flags[key]._value)
             f.write(entry + '\n')
             print(entry)
     f.close()
