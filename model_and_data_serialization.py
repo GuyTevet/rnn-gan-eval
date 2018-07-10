@@ -61,7 +61,7 @@ def load_dataset(b_lines=True, b_charmap=True, b_inv_charmap=True, seq_length=32
     else:
         print("Loading lines, charmap, inv_charmap from Dataset & Saving to pickle")
 
-        dataset_name = os.path.dirname(DATA_DIR).split(os.sep)[-1]
+        dataset_name = os.path.basename(DATA_DIR)
 
         if dataset_name.startswith('1-billion-word-language-modeling-benchmark'):
             lines, charmap, inv_charmap = language_helpers.load_dataset(
