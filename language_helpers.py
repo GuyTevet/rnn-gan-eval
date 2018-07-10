@@ -1,6 +1,6 @@
 import collections
 import string
-
+import os
 import numpy as np
 
 from config import BATCH_SIZE
@@ -162,6 +162,98 @@ def load_dataset(max_length, max_n_examples, tokenize=False, max_vocab_size=2048
     print(("loaded {} lines in dataset".format(len(lines))))
     return filtered_lines, charmap, inv_charmap
 
+def load_dataset_text8(max_length, max_n_examples, tokenize=False, max_vocab_size=2048,
+                 data_dir='/home/ishaan/data/1-billion-word-language-modeling-benchmark-r13output',
+                 pad=True, dataset='training'):
+
+    #specify path
+    if dataset == 'training':
+        path = os.path.join(data_dir,'text8-train')
+    elif dataset == 'heldout':
+        path = os.path.join(data_dir, 'text8-test')
+    else:
+        raise TypeError("only available datasets are 'training' and 'heldout'")
+
+    # split data to train and test if needed
+    if not os.path.exists(path):
+        split_text8(data_dir)
+
+    lines = []
+
+    with open(path, 'r') as f:
+        line = f.read(max_length)
+        while len(line) == max_length:
+
+            if tokenize:
+                line = tokenize_string(line)
+            else:
+                line = tuple(line)
+
+            lines.append(line)
+
+            if len(lines) == max_n_examples:
+                break
+
+            line = f.read(max_length)
+
+    np.random.shuffle(lines)
+
+    import collections
+    counts = collections.Counter(char for line in lines for char in line)
+
+    charmap = {}
+    inv_charmap = []
+
+    for char, count in counts.most_common(100):
+        if char not in charmap:
+            charmap[char] = len(inv_charmap)
+            inv_charmap.append(char)
+
+    filtered_lines = []
+    for line in lines:
+        filtered_line = []
+        for char in line:
+            if char in charmap:
+                filtered_line.append(char)
+            else:
+                filtered_line.append('unk')
+        filtered_lines.append(tuple(filtered_line))
+
+    # for i in range(100):
+    #     print(filtered_lines[i])
+
+    assert len(charmap) == 27
+
+    print(("loaded {} lines in dataset".format(len(lines))))
+    return filtered_lines, charmap, inv_charmap
+
+def split_text8(text8_dir_path):
+
+    print('spliting text8 to train and test sets...')
+
+    text8_orig_path = os.path.join(text8_dir_path,'text8')
+    text8_train_path = text8_orig_path + '-train'
+    text8_valid_path = text8_orig_path + '-valid'
+    text8_test_path = text8_orig_path + '-test'
+
+    # find each split size
+    with open(text8_orig_path) as f:
+        text8_size = len(f.read())
+    assert text8_size == 100000000
+
+    train_size = int(0.9 * text8_size)
+    valid_size = int(0.05 * text8_size)
+    test_size = int(0.05 * text8_size)
+
+    with open(text8_orig_path,'r') as f_orig, \
+            open(text8_train_path,'w') as f_train, \
+            open(text8_valid_path, 'w') as f_valid, \
+            open(text8_test_path,'w') as f_test:
+        f_train.write(f_orig.read(train_size))
+        f_valid.write(f_orig.read(valid_size))
+        f_test.write(f_orig.read(test_size))
+
+    return
 
 def generate_argmax_samples_and_gt_samples(session, inv_charmap, fake_inputs, disc_fake, gen, real_inputs_discrete, feed_gt=True):
     scores = []
