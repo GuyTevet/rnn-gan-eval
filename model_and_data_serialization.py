@@ -60,14 +60,30 @@ def load_dataset(b_lines=True, b_charmap=True, b_inv_charmap=True, seq_length=32
 
     else:
         print("Loading lines, charmap, inv_charmap from Dataset & Saving to pickle")
-        lines, charmap, inv_charmap = language_helpers.load_dataset(
-            max_length=seq_length,
-            max_n_examples=n_examples,
-            data_dir=DATA_DIR,
-            tokenize=tokenize,
-            pad=pad,
-            dataset=dataset
-        )
+
+        dataset_name = os.path.dirname(DATA_DIR).split(os.sep)[-1]
+
+        if dataset_name.startswith('1-billion-word-language-modeling-benchmark'):
+            lines, charmap, inv_charmap = language_helpers.load_dataset(
+                max_length=seq_length,
+                max_n_examples=n_examples,
+                data_dir=DATA_DIR,
+                tokenize=tokenize,
+                pad=pad,
+                dataset=dataset
+            )
+        elif dataset_name.startswith('text8'):
+            lines, charmap, inv_charmap = language_helpers.load_dataset_text8(
+                max_length=seq_length,
+                max_n_examples=n_examples,
+                data_dir=DATA_DIR,
+                tokenize=tokenize,
+                pad=pad,
+                dataset=dataset
+            )
+        else:
+            raise TypeError("currently supporting {1-billion-word-language-modeling-benchmark,text8}")
+
 
         # save to pkl
         if not os.path.isdir(PICKLE_PATH):
