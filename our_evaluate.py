@@ -18,7 +18,7 @@ FLAGS = tf.app.flags.FLAGS
 def evaluate(seq_length, N, charmap, inv_charmap):
 
     lines, _, _ = model_and_data_serialization.load_dataset(seq_length=seq_length, b_charmap=False, b_inv_charmap=False,
-                                                            n_examples=FLAGS.MAX_N_EXAMPLES)
+                                                            n_examples=FLAGS.MAX_N_EXAMPLES, dataset='heldout')
 
     real_inputs_discrete = tf.placeholder(tf.int32, shape=[BATCH_SIZE, seq_length])
 
@@ -41,57 +41,37 @@ def evaluate(seq_length, N, charmap, inv_charmap):
     restore_config.set_restore_dir(
         load_from_curr_session=True)  # global param, always load from curr session after finishing the first seq
 
-    # check that we loaded the checkpoints like we had to
-    merged, train_writer = define_summaries(disc_cost, gen_cost, seq_length)
-    iteration = 0
-    gen = inf_train_gen(lines, charmap)
-    _data = next(gen)
-    summary_str = sess.run(
-        merged,
-        feed_dict={real_inputs_discrete: _data}
-    )
+    BPC_list = []
 
-    train_writer.add_summary(summary_str, global_step=iteration)
-    fake_samples, samples_real_probabilites, fake_scores = generate_argmax_samples_and_gt_samples(sess, inv_charmap,
-                                                                                                  train_pred,
-                                                                                                  disc_fake,
-                                                                                                  gen,
-                                                                                                  real_inputs_discrete,
-                                                                                                  feed_gt=True)
+    for start_line in range(0, len(lines) - BATCH_SIZE + 1, BATCH_SIZE):
+        _data = np.array([[charmap[c] for c in l] for l in lines[start_line:start_line + BATCH_SIZE]])
 
-    log_samples(fake_samples, fake_scores, iteration, seq_length, "train")
-    test_samples, _, fake_scores = generate_argmax_samples_and_gt_samples(sess, inv_charmap,
-                                                                          inference_op,
-                                                                          disc_on_inference,
-                                                                          gen,
-                                                                          real_inputs_discrete,
-                                                                          feed_gt=False)
-    # disc_on_inference, inference_op
-    log_samples(test_samples, fake_scores, iteration, seq_length, "test")
+        # rand N noise vectors and for each one - calculate train_pred.
+        for i in range(N):
+            train_pred_i = sess.run(train_pred_for_eval, feed_dict={real_inputs_discrete: _data})
+            train_pred_all[i,:,:,:] = train_pred_i
 
-    # rand N noise vectors and for each one - calculate train_pred.
-    for i in range(N):
-        train_pred_i = sess.run(train_pred_for_eval, feed_dict={real_inputs_discrete: _data})
-        train_pred_all[i,:,:,:] = train_pred_i
+        # take average on each time step (first dimension)
+        train_pred_average = np.mean(train_pred_all, axis=0)
 
-    # take average on each time step (first dimension)
-    train_pred_average = np.mean(train_pred_all, axis=0)
+        # compute BPC (char-based perplexity)
+        train_pred_average_2d = train_pred_average.reshape([train_pred_average.shape[0]*train_pred_average.shape[1],
+                                                            train_pred_average.shape[2]])
+        real_data = _data.reshape([_data.shape[0]*_data.shape[1]])
 
-    # compute BPC (char-based perplexity)
-    train_pred_average_2d = train_pred_average.reshape([train_pred_average.shape[0]*train_pred_average.shape[1],
-                                                        train_pred_average.shape[2]])
-    real_data = _data.reshape([_data.shape[0]*_data.shape[1]])
+        BPC = 0
 
-    # train_pred_average_2d = train_pred_average.reshape(-1,train_pred_average.shape[-1])
-    # real_data = _data.flatten()
-    BPC = 0
+        epsilon = 1e-20
+        for i in range(real_data.shape[0]):
+            BPC -= np.log2(train_pred_average_2d[i,real_data[i]]+epsilon)
 
-    epsilon = 1e-20
-    for i in range(real_data.shape[0]):
-        BPC -= np.log2(train_pred_average_2d[i,real_data[i]]+epsilon)
+        BPC /= real_data.shape[0]
+        print("BPC of start_line %d = %.2f\n" % (start_line, BPC))
 
-    BPC /= real_data.shape[0]
-    print("BPC = %.2f\n" % (BPC))
+        BPC_list.append(BPC)
+
+    BPC_final = np.mean(BPC_list)
+    print("BPC_final = %.2f\n" % (BPC_final))
 
 def get_internal_checkpoint_dir(seq_length):
     internal_checkpoint_dir = os.path.join(restore_config.get_restore_dir(), "seq-%d" % seq_length)
@@ -100,6 +80,6 @@ def get_internal_checkpoint_dir(seq_length):
     return internal_checkpoint_dir
 
 _, charmap, inv_charmap = model_and_data_serialization.load_dataset(seq_length=32, b_lines=False)
-eval_seq_length = 32  # fixme - change to a flag
-N = 100  # fixme - change to a flag and decide on specific value
+eval_seq_length = 7  # fixme - change to a flag
+N = 1000  # fixme - change to a flag and decide on specific value
 evaluate(eval_seq_length, N, charmap, inv_charmap)
