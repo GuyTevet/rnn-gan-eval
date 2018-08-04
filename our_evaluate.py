@@ -72,6 +72,8 @@ def evaluate(seq_length, N, charmap, inv_charmap):
 
     BPC_final = np.mean(BPC_list)
     print("BPC_final = %.2f\n" % (BPC_final))
+    np.save('BPC_list.npy', BPC_list)
+    np.save('BPC_final.npy', BPC_final)
 
 def get_internal_checkpoint_dir(seq_length):
     internal_checkpoint_dir = os.path.join(restore_config.get_restore_dir(), "seq-%d" % seq_length)
@@ -80,6 +82,6 @@ def get_internal_checkpoint_dir(seq_length):
     return internal_checkpoint_dir
 
 _, charmap, inv_charmap = model_and_data_serialization.load_dataset(seq_length=32, b_lines=False)
-eval_seq_length = 7  # fixme - change to a flag
-N = 1000  # fixme - change to a flag and decide on specific value
+eval_seq_length = 7
+N = 2000
 evaluate(eval_seq_length, N, charmap, inv_charmap)
