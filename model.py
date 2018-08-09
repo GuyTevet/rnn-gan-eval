@@ -68,18 +68,18 @@ def Generator_GRU_CL_VL_TH(n_samples, charmap_len, seq_len=None, gt=None):
             seq_len = tf.placeholder(tf.int32, None, name="ground_truth_sequence_length")
 
         if gt is not None: #if no GT, we are training
-            train_pred = get_train_op(cells, char_input, charmap_len, embedding, gt, n_samples, num_neurons, seq_len,
+            train_pred, train_pred_for_eval = get_train_op(cells, char_input, charmap_len, embedding, gt, n_samples, num_neurons, seq_len,
                                       sm_bias, sm_weight, train_initial_states)
-            inference_op = get_inference_op(cells, char_input, embedding, seq_len, sm_bias, sm_weight, inference_initial_states,
+            inference_op, _ = get_inference_op(cells, char_input, embedding, seq_len, sm_bias, sm_weight, inference_initial_states,
                                             num_neurons,
                                             charmap_len, reuse=True)
         else:
-            inference_op = get_inference_op(cells, char_input, embedding, seq_len, sm_bias, sm_weight, inference_initial_states,
+            inference_op, _ = get_inference_op(cells, char_input, embedding, seq_len, sm_bias, sm_weight, inference_initial_states,
                                             num_neurons,
                                             charmap_len, reuse=False)
             train_pred = None
 
-        return train_pred, inference_op
+        return train_pred, inference_op, train_pred_for_eval
 
 
 def create_initial_states(noise):
@@ -111,7 +111,9 @@ def get_train_op(cells, char_input, charmap_len, embedding, gt, n_samples, num_n
         indices = tf.random_uniform([BATCH_SIZE], 0, BATCH_SIZE*seq_len, dtype=tf.int32)
         train_pred = tf.gather(train_pred, indices)
 
-    return train_pred
+    train_pred_for_eval = GRU_output
+
+    return train_pred, train_pred_for_eval
 
 
 def rnn_step_prediction(cells, charmap_len, gt_sentence_input, num_neurons, seq_len, sm_bias, sm_weight, states,
@@ -122,7 +124,8 @@ def rnn_step_prediction(cells, charmap_len, gt_sentence_input, num_neurons, seq_
             GRU_output, states[l] = tf.nn.dynamic_rnn(cells[l], GRU_output, dtype=tf.float32,
                                                        initial_state=states[l], scope="layer_%d" % (l + 1))
     GRU_output = tf.reshape(GRU_output, [-1, num_neurons])
-    GRU_output = tf.nn.softmax(tf.matmul(GRU_output, sm_weight) + sm_bias)
+    train_pred_logits = tf.matmul(GRU_output, sm_weight) + sm_bias
+    GRU_output = tf.nn.softmax(train_pred_logits)
     GRU_output = tf.reshape(GRU_output, [BATCH_SIZE, -1, charmap_len])
     return GRU_output, states
 
@@ -141,7 +144,7 @@ def get_inference_op(cells, char_input, embedding, seq_len, sm_bias, sm_weight, 
         embedded_pred.append(tf.expand_dims(tf.matmul(best_char, embedding), 1))
         reuse = True  # no matter what the reuse was, after the first step we have to reuse the defined vars
 
-    return tf.concat(inference_pred, axis=1)
+    return tf.concat(inference_pred, axis=1), step_pred
 
 
 generators = {

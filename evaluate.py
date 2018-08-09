@@ -91,4 +91,4 @@ def get_gt_grams_cached(lines, dataset='training'):
 dataset = 'heldout'
 lines = load_gt(tokenize=False, dataset=dataset)
 gt_grams = get_gt_grams_cached(lines, dataset)
-evaluate(FLAGS.INPUT_SAMPLE, gt_grams)
+evaluate(FLAGS.INPUT_SAMPLE, gt_grams)                                                                       seq_length)

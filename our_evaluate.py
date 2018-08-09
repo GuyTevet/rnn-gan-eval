@@ -12,6 +12,7 @@ from model import *
 import model_and_data_serialization
 sys.path.append(os.getcwd())
 import numpy as np
+import time
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -44,6 +45,7 @@ def evaluate(seq_length, N, charmap, inv_charmap):
     BPC_list = []
 
     for start_line in range(0, len(lines) - BATCH_SIZE + 1, BATCH_SIZE):
+        t0 = time.time()
         _data = np.array([[charmap[c] for c in l] for l in lines[start_line:start_line + BATCH_SIZE]])
 
         # rand N noise vectors and for each one - calculate train_pred.
@@ -66,9 +68,10 @@ def evaluate(seq_length, N, charmap, inv_charmap):
             BPC -= np.log2(train_pred_average_2d[i,real_data[i]]+epsilon)
 
         BPC /= real_data.shape[0]
-        print("BPC of start_line %d = %.2f\n" % (start_line, BPC))
-
+        print("BPC of start_line %d/%d = %.2f" % (start_line, len(lines), BPC))
+        print("t_iter = %.2f" % (time.time()-t0))
         BPC_list.append(BPC)
+        np.save('BPC_list_temp.npy', BPC_list)
 
     BPC_final = np.mean(BPC_list)
     print("BPC_final = %.2f\n" % (BPC_final))
