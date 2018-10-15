@@ -35,7 +35,11 @@ def run(iterations, seq_length, is_first, charmap, inv_charmap, prev_seq_length)
 
     saver = tf.train.Saver(tf.trainable_variables())
 
-    with tf.Session() as session:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    # config.gpu_options.per_process_gpu_memory_fraction = 0.5
+
+    with tf.Session(config=config) as session:
 
         session.run(tf.initialize_all_variables())
         if not is_first:
