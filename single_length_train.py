@@ -27,7 +27,7 @@ def run(iterations, seq_length, is_first, charmap, inv_charmap, prev_seq_length)
     real_inputs_discrete = tf.placeholder(tf.int32, shape=[BATCH_SIZE, seq_length])
 
     global_step = tf.Variable(0, trainable=False)
-    disc_cost, gen_cost, fake_inputs, disc_fake, disc_real, disc_on_inference, inference_op = define_objective(charmap,
+    disc_cost, gen_cost, fake_inputs, train_pred_for_eval, disc_fake, disc_real, disc_on_inference, inference_op = define_objective(charmap,
                                                                                                             real_inputs_discrete,
                                                                                                             seq_length)
     merged, train_writer = define_summaries(disc_cost, gen_cost, seq_length)
@@ -69,7 +69,7 @@ def run(iterations, seq_length, is_first, charmap, inv_charmap, prev_seq_length)
             print("disc cost %f"%_disc_cost)
 
             # Summaries
-            if iteration % 1000 == 999:
+            if iteration % 2 == 0:
                 _data = next(gen)
                 summary_str = session.run(
                     merged,
