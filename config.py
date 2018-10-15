@@ -5,7 +5,7 @@ import tensorflow as tf
 
 flags = tf.app.flags
 
-
+flags.DEFINE_string('EXP_NAME', 'default', '')
 flags.DEFINE_string('LOGS_DIR', os.path.join('.','logs'), '')
 # flags.DEFINE_string('DATA_DIR', os.path.join('.','data','1-billion-word-language-modeling-benchmark-r13output'), "")
 flags.DEFINE_string('DATA_DIR', os.path.join('.','data','text8'), "")
@@ -44,11 +44,13 @@ FLAGS = flags.FLAGS
 
 # only for backward compatability
 
-LOGS_DIR = os.path.join(FLAGS.LOGS_DIR,
-                        "%s-%s-%s-%s-%s-%s-%s-" % (FLAGS.GENERATOR_MODEL, FLAGS.DISCRIMINATOR_MODEL,
-                                                        FLAGS.GEN_ITERS, FLAGS.CRITIC_ITERS,
-                                                        FLAGS.DISC_STATE_SIZE, FLAGS.GEN_STATE_SIZE,
-                                                        time.time()))
+# LOGS_DIR = os.path.join(FLAGS.LOGS_DIR,
+#                         "%s-%s-%s-%s-%s-%s-%s-" % (FLAGS.GENERATOR_MODEL, FLAGS.DISCRIMINATOR_MODEL,
+#                                                         FLAGS.GEN_ITERS, FLAGS.CRITIC_ITERS,
+#                                                         FLAGS.DISC_STATE_SIZE, FLAGS.GEN_STATE_SIZE,
+#                                                         time.time()))
+
+LOGS_DIR = os.path.join(FLAGS.LOGS_DIR,FLAGS.EXP_NAME)
 
 
 class RestoreConfig():
