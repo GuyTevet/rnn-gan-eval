@@ -73,7 +73,7 @@ def run(iterations, seq_length, is_first, charmap, inv_charmap, prev_seq_length)
             print("disc cost %f"%_disc_cost)
 
             # Summaries
-            if iteration % 2 == 0:
+            if iteration % 1000 == 0:
                 _data = next(gen)
                 summary_str = session.run(
                     merged,
