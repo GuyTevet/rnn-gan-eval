@@ -14,6 +14,7 @@ sys.path.append(os.getcwd())
 import numpy as np
 import time
 import os
+import argparse
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -39,7 +40,12 @@ def restore_param_from_config(config_file,param):
 
 
 
-def evaluate(seq_length, N, charmap, inv_charmap):
+def evaluate(EVAL_FLAGS):
+
+    # load dict & params
+    _, charmap, inv_charmap = model_and_data_serialization.load_dataset(seq_length=32, b_lines=False)
+    seq_length = EVAL_FLAGS.seq_len
+    N = EVAL_FLAGS.num_samples
 
     ckp_list, config_list = get_models_list()
 
@@ -47,9 +53,14 @@ def evaluate(seq_length, N, charmap, inv_charmap):
 
     for ckp_path, config_path in zip(ckp_list, config_list):
 
-        tf.reset_default_graph()
-
         model_name = "%0s_%0s"%(ckp_path.split('/')[2],ckp_path.split('/')[4])
+
+        #filter by model name
+        if not model_name.startswith(EVAL_FLAGS.prefix_filter):
+            print("NOT EVALUATING [%0s]" % model_name)
+            continue
+
+        tf.reset_default_graph()
 
         print("EVALUATING [%0s]" % model_name)
         print("restoring config:")
@@ -85,7 +96,12 @@ def evaluate(seq_length, N, charmap, inv_charmap):
 
         BPC_list = []
 
-        for start_line in range(0, len(lines) - BATCH_SIZE + 1, BATCH_SIZE):
+        if EVAL_FLAGS.short_run:
+            end_line = BATCH_SIZE * 100 # 100 batches
+        else:
+            end_line = len(lines) - BATCH_SIZE + 1 # all data
+
+        for start_line in range(0, end_line, BATCH_SIZE):
             t0 = time.time()
             _data = np.array([[charmap[c] for c in l] for l in lines[start_line:start_line + BATCH_SIZE]])
 
@@ -125,7 +141,20 @@ def get_internal_checkpoint_dir(seq_length):
         os.makedirs(internal_checkpoint_dir)
     return internal_checkpoint_dir
 
-_, charmap, inv_charmap = model_and_data_serialization.load_dataset(seq_length=32, b_lines=False)
-eval_seq_length = 7
-N = 2000
-evaluate(eval_seq_length, N, charmap, inv_charmap)
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description="rnn-gan LM evaluation")
+
+    parser.add_argument('--prefix_filter', type=str, default='', help='prefix for filtering exp names to evaluate ['']')
+    parser.add_argument('--seq_len', type=int, default=7, help='sequence length [7]')
+    parser.add_argument('--num_samples', type=int, default=2000, help='num of samples per char (N) [2000]')
+    parser.add_argument('--short_run', action='store_true', help='run only 100 batches for quick evaluation')
+
+    EVAL_FLAGS = parser.parse_args()
+    EVAL_FLAGS.short_run = True
+    EVAL_FLAGS.prefix_filter = '1.2'
+
+    # run
+    evaluate(EVAL_FLAGS)
