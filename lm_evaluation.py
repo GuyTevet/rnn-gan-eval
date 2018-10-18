@@ -49,9 +49,9 @@ def evaluate(seq_length, N, charmap, inv_charmap):
 
         tf.reset_default_graph()
 
-        model_name = ckp_path.split('/')[2]
+        model_name = "%0s_%0s"%(ckp_path.split('/')[2],ckp_path.split('/')[4])
 
-        print("EVALUATING [%0s]" % ckp_path)
+        print("EVALUATING [%0s]" % model_name)
         print("restoring config:")
         FLAGS.DISC_STATE_SIZE = restore_param_from_config(config_path,'DISC_STATE_SIZE')
         FLAGS.GEN_STATE_SIZE = restore_param_from_config(config_path,'GEN_STATE_SIZE')
@@ -85,8 +85,7 @@ def evaluate(seq_length, N, charmap, inv_charmap):
 
         BPC_list = []
 
-        # for start_line in range(0, len(lines) - BATCH_SIZE + 1, BATCH_SIZE):
-        for start_line in range(0, BATCH_SIZE * 3, BATCH_SIZE):
+        for start_line in range(0, len(lines) - BATCH_SIZE + 1, BATCH_SIZE):
             t0 = time.time()
             _data = np.array([[charmap[c] for c in l] for l in lines[start_line:start_line + BATCH_SIZE]])
 
