@@ -94,6 +94,20 @@ def evaluate(EVAL_FLAGS):
         restore_config.set_restore_dir(
             load_from_curr_session=True)  # global param, always load from curr session after finishing the first seq
 
+
+        # create samples
+        print('start creating samples..')
+        test_samples, _, fake_scores = generate_argmax_samples_and_gt_samples(sess, inv_charmap,
+                                                                              inference_op,
+                                                                              disc_on_inference,
+                                                                              None,
+                                                                              real_inputs_discrete,
+                                                                              feed_gt=False)
+
+        log_samples(test_samples, fake_scores, 666, seq_length, "test")
+
+
+        print('starting BPC eval...')
         BPC_list = []
 
         if EVAL_FLAGS.short_run:
@@ -154,7 +168,8 @@ if __name__ == '__main__':
 
     EVAL_FLAGS = parser.parse_args()
     EVAL_FLAGS.short_run = True
-    EVAL_FLAGS.prefix_filter = '1.2'
+    # EVAL_FLAGS.prefix_filter = '1.2'
+    EVAL_FLAGS.seq_len = 100
 
     # run
     evaluate(EVAL_FLAGS)
